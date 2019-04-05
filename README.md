@@ -1,2 +1,2 @@
 # NXPCUP-library
-Library for NXPCUP competition based on the Mbed framework.
+Library for car's control board on NXPCUP competition based on the Mbed framework.

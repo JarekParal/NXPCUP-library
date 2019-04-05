@@ -1,0 +1,20 @@
+{
+    "name": "NXPCUP-library",
+    "keywords": "NXPCUP, FRDM, Alamak, FRDM-KL25Z, FRDM-K66F",
+    "description": "Library for car's control board on NXPCUP competition based on the Mbed framework.",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/JarekParal/NXPCUP-library"
+    },
+    "authors": [
+        {
+            "name": "Jaroslav Paral",
+            "email": "paral.jarek@gmail.com",
+			"maintainer": true
+        }
+    ],
+    "version": "1.0.0",
+    "frameworks": "mbed",
+    "platforms": ["freescalekinetis", "nxplpc", "ststm32"]
+}
