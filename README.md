@@ -10,10 +10,15 @@ Actually tested on [Alamak](https://nxp.gitbook.io/nxp-cup-hardware-reference-al
 - motors
 - servos
 - cameras
-- display (with libraries [Adafruit SSD1306](https://github.com/adafruit/Adafruit_SSD1306) and [Adafruit GFX](https://github.com/adafruit/Adafruit-GFX-Library) )
 - buttons
+- encoders 
 
 ## Feature plans
 
-- add encoders 
 - add support for [FRDM-K66F](https://os.mbed.com/platforms/FRDM-K66F)
+
+## Code style
+
+This library has [WebKit code style](https://webkit.org/code-style-guidelines/).
+When you want to send some improvement through pull-request, please check that your changes don't violate the WebKit code style.
+You can use program [clang-format](https://clang.llvm.org/docs/ClangFormat.html) with parameter `-style=webkit` for checking or correction the format.

@@ -1,139 +1,142 @@
 #pragma once
 
-#include <array>
-#include <numeric>
-
 #include "mbed.h"
+
+#include "Image.h"
 #include "util.h"
 
 namespace nxpcup {
 
 class Camera {
 public:
-    struct Pinout {
-        PinName analog_out; /**< Analog out - data from Camera */
-        PinName clk; /**< CLK */
-        PinName si; /**< Scan Impulse - finish of exposition */
+    static constexpr int ImageSize = 128;
+    using ImageType = uint16_t;
+    using CameraImage = Image<ImageType, ImageSize>;
+
+    struct Config {
+        PinName analogOut; /**< Analog out pin on camera - data from Camera **/
+        PinName clk; /**< CLK pin **/
+        PinName si; /**< Scan Impulse pin - finish of exposition **/
+        uint32_t exposition_us; /**< setting for the exposition in microseconds **/
+
+        static constexpr uint32_t EXPOSURE_TIME_MIN = 0;
+        static constexpr uint32_t EXPOSURE_TIME_MAX = 150000;
     };
 
     /**
-     * Constructor of camera class
+     * Constructor of class Camera.
      *
-     * @param struct @{Pinout}
+     * @param config struct @{Config}
      */
-    Camera(const Pinout &pinout)
-		: AOUT(pinout.analog_out),
-		  CLK(pinout.clk),
-		  SI(pinout.si)
+    Camera(const Config& config)
+        : m_analogOut(config.analogOut)
+        , m_clk(config.clk)
+        , m_si(config.si)
     {
-      CLK.write(false);
-      SI.write(true);
+        m_clk.write(false);
+        m_si.write(true);
+        setExpositionUs(config.exposition_us);
     }
 
     /**
-     * Set the exposition time in millisecond
-     * @param exposition_ms time of exposition in millisecond (0 <-> 150)
+     * Set the exposition time in millisecond.
+     *
+     * @param exposition_ms time of exposition in millisecond - clamped (0 <-> 150)
      */
-    void expositionMs(uint32_t exposition_ms) {
-    	expositionUs(exposition_ms * 1000);
+    void setExpositionMs(uint32_t exposition_ms)
+    {
+        setExpositionUs(exposition_ms * 1000);
     }
 
     /**
-     * Set the exposition time in microsecond
-     * @param exposition_us time of exposition in microsecond (0 <-> 150000)
+     * Set the exposition time in microsecond.
+     *
+     * @param exposition_us time of exposition in microsecond - clamped (0 <-> 150000)
      */
-    void expositionUs(uint32_t exposition_us) {
-    	exposition_us = nxpcup::clamp<uint32_t>(
-    			exposition_us,
-				EXPOSURE_TIME_MIN,
-				EXPOSURE_TIME_MAX
-		);
-        exposureUs = exposition_us;
+    void setExpositionUs(uint32_t exposition_us)
+    {
+        exposition_us = nxpcup::clamp<uint32_t>(
+            exposition_us, Config::EXPOSURE_TIME_MIN, Config::EXPOSURE_TIME_MAX);
+        this->m_expositionUs = exposition_us;
     }
 
     /**
-     * Get one pixel from line image
-     * @param index of the pixel (0 - 127)
+     * Get the actual exposition in microsecond.
+     */
+    uint32_t expositionUs() const { return m_expositionUs; }
+
+    /**
+     * Get one pixel from line image.
+     *
+     * @param index of the pixel (0 - 127) - clamped
      * @return one pixel
      */
-    uint16_t pixel(uint8_t index) {
-    	index = nxpcup::clamp<uint8_t>(index, 0, 127);
-        return image[index];
+    ImageType pixel(int index) const
+    {
+        index = nxpcup::clamp<int>(index, 0, 127);
+        return m_image[index];
     }
 
     /**
-     * Get pointer to array with pixels
+     * Returns reference to internal @{Image}.
+     */
+    CameraImage& image() { return m_image; }
+
+    /**
+     * Get pointer to array with pixels.
+     *
      * @return pointer to array of pixels
      */
-    uint16_t* pixels() {
-        return &(image[0]);
+    [[deprecated]] std::array<ImageType, CameraImage::size>& pixels() {
+        return m_image.data;
     }
-    
+
     /**
-     * Update the data from camera.
+     * Update the data from camera with exact exposition.
+     *
+     * Load one image, skip the data.
+     * Wait for exposition time.
+     * Load the final image and save.
      */
-    void update() {
-        SI.write(true);
-        CLK.write(true);
-        SI.write(false);
-        // Skip one image due to the correct exposureTime
-        for(uint8_t i = 0; i < numberOfPixels; i++) {
-            CLK.write(false);
-            CLK.write(true);
+    void update()
+    {
+        m_si.write(true);
+        m_clk.write(true);
+        m_si.write(false);
+        // Skip one image due to the correct m_exposition_us
+        for (std::size_t i = 0; i < CameraImage::size; i++) {
+            m_clk.write(false);
+            m_clk.write(true);
         }
-        CLK.write(false);
-        wait_us(exposureUs);
+        m_clk.write(false);
+        wait_us(m_expositionUs);
         updateImage();
     }
 
+protected:
     /**
-     * Differentiate the image.
-     * @param inputArray new array for result after differentiate the image
+     * Update the data from camera immediate (without set exposition).
      */
-    void difference(uint16_t* inputArray) {
-        for(uint8_t i = 1; i < numberOfPixels; i++) {
-        	inputArray[i] = abs(image[i] - image[i - 1]);
+    void updateImage()
+    {
+        m_si.write(true);
+        m_clk.write(true);
+        m_si.write(false);
+
+        for (std::size_t j = 0; j < CameraImage::size; j++) {
+            m_image[j] = m_analogOut.read_u16();
+            m_clk.write(false);
+            m_clk.write(true);
         }
+        m_clk.write(false);
     }
 
-    template<uint8_t medianSize>
-    void median(uint16_t* inputArray) {
-    	std::array< int8_t, medianSize*2 + 1 > indexes;
-    	std::iota(indexes.begin(), indexes.end(), -medianSize);
-    	for(uint8_t i = medianSize; i < numberOfPixels - medianSize; ++i) {
+    AnalogIn m_analogOut; /**< Read the analog data from camera */
+    DigitalOut m_clk;
+    DigitalOut m_si;
 
-    		std::sort(indexes.begin(), indexes.end(), [&](int8_t lh, int8_t rh){
-    			return image[i + lh] < image[i + rh];
-    		});
-
-    		inputArray[i] = image[i + indexes[medianSize]];
-    	}
-    }
-
-private:
-    void updateImage() {
-        SI.write(true);
-        CLK.write(true);
-        SI.write(false);
-
-        for(uint8_t j = 0; j < numberOfPixels; j++) {
-            image[j] = AOUT.read_u16();
-            CLK.write(false);
-            CLK.write(true);
-        }
-        CLK.write(false);
-    }
-
-    static const uint8_t numberOfPixels = 128;
-    static const uint32_t EXPOSURE_TIME_MIN = 0;
-    static const uint32_t EXPOSURE_TIME_MAX = 150000;
-
-    AnalogIn AOUT;
-    DigitalOut CLK;
-    DigitalOut SI;
-
-    uint16_t image[numberOfPixels];
-    uint32_t exposureUs = 10000;
+    CameraImage m_image;
+    uint32_t m_expositionUs = 10000;
 };
 
 } // namespace nxpcup
