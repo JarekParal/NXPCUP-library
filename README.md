@@ -3,7 +3,7 @@ Library for car's control board on [NXP-CUP competition](https://community.nxp.c
 
 [Doxygen documentation](https://jarekparal.github.io/NXPCUP-library/annotated.html).
 
-Actually tested on [Alamak](https://nxp.gitbook.io/nxp-cup-hardware-reference-alamak/kit-contents) car with [FRDM-KL25Z](https://os.mbed.com/platforms/KL25Z/).
+Actually tested on [Alamak](https://nxp.gitbook.io/nxp-cup-hardware-reference-alamak/kit-contents) car with [FRDM-KL25Z](https://os.mbed.com/platforms/KL25Z/) (mbed-os2, mbed-os5) and [FRDM-K66F](https://os.mbed.com/platforms/FRDM-K66F) (mbed-os5).
 
 ## Supported peripheries
 
@@ -13,9 +13,12 @@ Actually tested on [Alamak](https://nxp.gitbook.io/nxp-cup-hardware-reference-al
 - buttons
 - encoders 
 
-## Feature plans
+## Support classes
 
-- add support for [FRDM-K66F](https://os.mbed.com/platforms/FRDM-K66F)
+- Image - class for working with data from sensors 
+- BorderDetector - detector of the road
+- MotorControl - PI regulator for motors
+- ObstacleDetector - obstacle detection and path modification
 
 ## Code style
 
