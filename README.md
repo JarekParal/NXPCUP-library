@@ -25,3 +25,5 @@ Actually tested on [Alamak](https://nxp.gitbook.io/nxp-cup-hardware-reference-al
 This library has [WebKit code style](https://webkit.org/code-style-guidelines/).
 When you want to send some improvement through pull-request, please check that your changes don't violate the WebKit code style.
 You can use program [clang-format](https://clang.llvm.org/docs/ClangFormat.html) with parameter `-style=webkit` for checking or correction the format.
+
+Implace edit: `clang-format -style=webkit -i src/*`
